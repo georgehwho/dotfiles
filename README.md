@@ -1,2 +1,2 @@
-# dotfiles
-Aliases I like to use
+# George's Dotfiles
+Aliases I currently like to use 
