@@ -1,2 +1,10 @@
 # George's Dotfiles
-Aliases I currently like to use 
+WIP: dotfiles for quick and EZ install
+
+## Installation
+
+```bash
+wget https://raw.githubusercontent.com/georgehwho/dotfiles/main/install.sh
+./install.sh
+rm install.sh
+```
