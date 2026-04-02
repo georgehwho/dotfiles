@@ -1,6 +1,6 @@
 font-family = "JetBrainsMono Nerd Font"
 font-size = 14
-theme = catppuccin-mocha
+theme = Catppuccin Mocha
 window-decoration = true
 
 # Ghostty native splits (Cmd+D horizontal, Cmd+Shift+D vertical)
