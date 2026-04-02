@@ -1,0 +1,14 @@
+font-family = "JetBrainsMono Nerd Font"
+font-size = 14
+theme = catppuccin-mocha
+window-decoration = true
+
+# Ghostty native splits (Cmd+D horizontal, Cmd+Shift+D vertical)
+# No extra config needed — these are defaults
+
+# Slightly more padding for readability
+window-padding-x = 4
+window-padding-y = 4
+
+# Fast cursor blinking
+cursor-style = block

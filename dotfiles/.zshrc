@@ -1,15 +1,13 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
-
 export ZSH="$HOME/.oh-my-zsh"
 
-ZSH_THEME="powerlevel10k/powerlevel10k"
+# Disable Oh-My-Zsh theme — Starship handles the prompt
+ZSH_THEME=""
 
-plugins=(git)
+plugins=(
+  git
+  zsh-syntax-highlighting
+  zsh-autosuggestions
+)
 
 # (MacOS only) Prevent Homebrew from reporting
 export HOMEBREW_NO_ANALYTICS=1
@@ -17,17 +15,39 @@ export HOMEBREW_NO_ANALYTICS=1
 # load Oh-My-Zsh
 source $ZSH/oh-my-zsh.sh
 
+# PATH
+export PATH="./bin:./node_modules/.bin:${PATH}:/usr/local/sbin"
+
+# Source secrets from a separate file (tokens, API keys, etc.)
+# Create ~/.env.secrets for tokens you don't want in version control
+[[ -f "$HOME/.env.secrets" ]] && source "$HOME/.env.secrets"
+
 # Aliases
 [[ -f "$HOME/.aliases" ]] && source "$HOME/.aliases"
 
 eval $(/opt/homebrew/bin/brew shellenv)
-eval $(thefuck --alias)
 
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+# Lazy-load thefuck (saves ~300ms startup time)
+if command -v thefuck &> /dev/null; then
+  fuck() {
+    unset -f fuck
+    eval $(thefuck --alias)
+    fuck "$@"
+  }
+fi
 
-# asdf shell integration
-. $HOME/.asdf/asdf.sh
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
-source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# Docker
+export PATH=$PATH:~/.docker/bin
+fpath=($HOME/.docker/completions $fpath)
+autoload -Uz compinit
+compinit
+
+# nvm (node version manager)
+export NVM_DIR="$HOME/.nvm"
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
+[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+
+# Starship prompt (must be last)
+eval "$(starship init zsh)"
