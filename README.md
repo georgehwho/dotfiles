@@ -24,15 +24,22 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-This will:
-1. Install Ghostty, Starship, tmux, fzf, eza, ripgrep, thefuck, nvm, rbenv, and JetBrains Mono Nerd Font via Homebrew
-2. Set up Node.js (latest LTS via nvm) and Ruby (3.2.2 via rbenv)
-3. Install Claude Code
-4. Set up fzf keybindings and completion
-5. Install Oh-My-Zsh plugins (zsh-syntax-highlighting, zsh-autosuggestions)
-6. Back up any existing config files to `~/.dotfiles_backup/<timestamp>/`, then symlink all config files to their expected locations
+The script will always install:
+- Ghostty, Starship, tmux, fzf, eza, ripgrep, thefuck, and JetBrains Mono Nerd Font via Homebrew
+- fzf keybindings and completion
+- Oh-My-Zsh plugins (zsh-syntax-highlighting, zsh-autosuggestions)
+- Symlinks for all config files (existing files are backed up to `~/.dotfiles_backup/<timestamp>/`)
 
-Existing symlinks are overwritten in place. Only real files are backed up.
+You'll be prompted to optionally install:
+- **nvm + Node.js LTS** — if you do JavaScript/TypeScript work
+- **rbenv + Ruby 3.2.2** — if you do Ruby work
+- **Claude Code** — Anthropic's CLI for Claude
+
+To skip the prompts and install everything, run:
+
+```bash
+./install.sh --all
+```
 
 ## Using the Ghostty stack
 
