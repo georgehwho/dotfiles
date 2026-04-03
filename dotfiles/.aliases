@@ -31,12 +31,9 @@ function current_branch() {
   echo ${ref#refs/heads/}
 }
 
-# git overrides and additions (Oh-My-Zsh git plugin provides the rest)
+# git additions (Oh-My-Zsh git plugin provides the rest)
 alias gs='git status'
 alias ga.='git add .'
-alias gcam='git commit -vam'
-alias gd='git diff --color-words=. --ignore-all-space'
-alias gdc='git diff --cached'
 alias gpush='git push origin $(current_branch)'
 alias gpull='git pull origin $(current_branch)'
 alias gl="git log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
