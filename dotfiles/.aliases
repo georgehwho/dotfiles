@@ -24,11 +24,6 @@ else
     alias l='ls -laghFG'
 fi
 
-# fzf history search
-fh() {
-  eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
-}
-
 # for git aliases
 function current_branch() {
   ref=$(git symbolic-ref HEAD 2> /dev/null) || \

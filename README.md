@@ -7,7 +7,7 @@ Terminal setup built around Ghostty + Starship + tmux + fzf on macOS.
 ```
 dotfiles/
   .zshrc          # Shell config (Oh-My-Zsh + Starship, no P10k)
-  .aliases        # Git aliases, eza, ripgrep, fzf history search
+  .aliases        # Git aliases, eza, ripgrep, thefuck, navigation shortcuts
 ghostty/
   config          # Catppuccin Mocha, JetBrains Mono Nerd Font
 starship/
@@ -25,9 +25,14 @@ cd ~/dotfiles
 ```
 
 This will:
-1. Install Ghostty, Starship, tmux, fzf, eza, ripgrep, thefuck, and JetBrains Mono Nerd Font via Homebrew
-2. Install Oh-My-Zsh plugins (zsh-syntax-highlighting, zsh-autosuggestions)
-3. Symlink all config files to their expected locations
+1. Install Ghostty, Starship, tmux, fzf, eza, ripgrep, thefuck, nvm, rbenv, and JetBrains Mono Nerd Font via Homebrew
+2. Set up Node.js (latest LTS via nvm) and Ruby (3.2.2 via rbenv)
+3. Install Claude Code
+4. Set up fzf keybindings and completion
+5. Install Oh-My-Zsh plugins (zsh-syntax-highlighting, zsh-autosuggestions)
+6. Back up any existing config files to `~/.dotfiles_backup/<timestamp>/`, then symlink all config files to their expected locations
+
+Existing symlinks are overwritten in place. Only real files are backed up.
 
 ## Using the Ghostty stack
 
@@ -51,8 +56,9 @@ This will:
 
 **fzf** gives fuzzy search everywhere:
 - `Ctrl+R` for history search
-- `fh` alias for interactive history execution
 - `Ctrl+T` for file search, `Alt+C` for directory jump
+
+**Docker** is configured in `.zshrc` with `~/.docker/bin` on PATH and shell completions enabled.
 
 ## Secrets
 
@@ -60,4 +66,4 @@ Tokens and API keys go in `~/.env.secrets` (not tracked by git). The `.zshrc` so
 
 ## Post-install
 
-If you have machine-specific config (work aliases, extra PATH entries, etc.), add them to `~/.env.secrets` or a `~/.zshrc.local` file and source it from `.zshrc`.
+If you have machine-specific config (work aliases, extra PATH entries, etc.), add them to `~/.zshrc.local` which is automatically sourced by `.zshrc` if present. Tokens and API keys should go in `~/.env.secrets` instead (also auto-sourced). Neither file is tracked by git.

@@ -16,11 +16,13 @@ export HOMEBREW_NO_ANALYTICS=1
 source $ZSH/oh-my-zsh.sh
 
 # PATH
-export PATH="./bin:./node_modules/.bin:${PATH}:/usr/local/sbin"
+export PATH="$HOME/.local/bin:./bin:./node_modules/.bin:${PATH}:/usr/local/sbin"
+export PATH="$HOME/.rbenv/bin:$PATH"
 
 # Source secrets from a separate file (tokens, API keys, etc.)
 # Create ~/.env.secrets for tokens you don't want in version control
 [[ -f "$HOME/.env.secrets" ]] && source "$HOME/.env.secrets"
+[[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
 
 # Aliases
 [[ -f "$HOME/.aliases" ]] && source "$HOME/.aliases"
@@ -35,6 +37,8 @@ if command -v thefuck &> /dev/null; then
     fuck "$@"
   }
 fi
+
+eval "$(rbenv init - zsh)"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
