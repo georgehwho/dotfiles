@@ -67,6 +67,28 @@ To skip the prompts and install everything, run:
 
 **Docker** is configured in `.zshrc` with `~/.docker/bin` on PATH and shell completions enabled.
 
+## Terragrunt / Terraform caching
+
+`.zshrc` sets two env vars that keep Terraform/Terragrunt caches from clogging your repos and your editor:
+
+- **`TERRAGRUNT_DOWNLOAD="$HOME/.cache/terragrunt"`** — Terragrunt copies each unit's module into a working directory (with generated backend/provider config) before running Terraform. By default that's an in-repo `.terragrunt-cache/` **per unit**, so a repo with hundreds of units accumulates hundreds of copies. Worse, editor language servers (VS Code's `terraform-ls`) index every one and can balloon to tens of GB of RAM. This relocates all caches to `~/.cache/terragrunt`, namespaced per unit — repos stay clean and the language server has nothing in-workspace to choke on.
+- **`TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"`** — shares downloaded provider binaries across all units/repos instead of re-downloading them into every cache.
+
+Both directories are created on shell startup, so this works on a fresh machine with no extra steps.
+
+**If you use VS Code's Terraform extension**, also add to your workspace or user `settings.json` so `terraform-ls` never indexes stray caches:
+
+```jsonc
+"terraform.languageServer.indexing.ignorePaths": ["**/.terragrunt-cache"],
+"files.watcherExclude": { "**/.terragrunt-cache/**": true }
+```
+
+**Clean up stray in-repo caches** (from before this was set, or a repo that overrides the download dir):
+
+```bash
+find . -type d -name .terragrunt-cache -prune -exec rm -rf {} +
+```
+
 ## Secrets
 
 Tokens and API keys go in `~/.env.secrets` (not tracked by git). The `.zshrc` sources it automatically if present.

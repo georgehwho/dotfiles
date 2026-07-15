@@ -53,5 +53,11 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
 [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
 
+# Terragrunt / Terraform caching (see README "Terragrunt / Terraform caching")
+# Keep per-unit module caches out of repos and share provider binaries across units.
+export TERRAGRUNT_DOWNLOAD="$HOME/.cache/terragrunt"
+export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
+mkdir -p "$TERRAGRUNT_DOWNLOAD" "$TF_PLUGIN_CACHE_DIR"
+
 # Starship prompt (must be last)
 eval "$(starship init zsh)"
