@@ -1,0 +1,9 @@
+# herdr config: https://herdr.dev/docs/configuration/
+# Run `herdr --default-config` to see every option.
+
+[theme]
+name = "catppuccin"  # matches Ghostty's Catppuccin Mocha
+
+[keys]
+# Ctrl+a to keep tmux muscle memory (herdr's default is Ctrl+b)
+prefix = "ctrl+a"

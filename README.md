@@ -1,6 +1,6 @@
 # George's Dotfiles
 
-Terminal setup built around Ghostty + Starship + tmux + fzf on macOS.
+Terminal setup for agentic development on macOS, built around Ghostty + herdr + Starship + fzf.
 
 ## What's included
 
@@ -10,13 +10,21 @@ dotfiles/
   .aliases        # Git aliases, eza, ripgrep, thefuck, navigation shortcuts
 ghostty/
   config          # Catppuccin Mocha, JetBrains Mono Nerd Font
+git/
+  .gitconfig      # SSH signing, sane defaults; identity in ~/.gitconfig.local
+herdr/
+  config.toml     # Agent multiplexer: Ctrl+a prefix, catppuccin theme
+ssh/
+  config          # Keychain-backed GitHub key; hosts in ~/.ssh/config.local
 starship/
   starship.toml   # Prompt with git, k8s, aws, terraform, node, ruby modules
 tmux/
-  .tmux.conf      # Ctrl+a prefix, mouse, catppuccin status bar, Ghostty true color
+  .tmux.conf      # Optional: Ctrl+a prefix, mouse, catppuccin status bar, Ghostty true color
 ```
 
 ## Installation
+
+On a fresh Mac, install the Xcode Command Line Tools first (`xcode-select --install`) so `git` works. Then:
 
 ```bash
 git clone https://github.com/georgehwho/dotfiles.git ~/dotfiles
@@ -25,15 +33,17 @@ cd ~/dotfiles
 ```
 
 The script will always install:
-- Ghostty, Starship, tmux, fzf, eza, ripgrep, thefuck, and JetBrains Mono Nerd Font via Homebrew
+- Homebrew and Oh-My-Zsh, if they're missing
+- Ghostty, herdr, Starship, fzf, eza, ripgrep, thefuck, gh, jq, and JetBrains Mono Nerd Font via Homebrew
 - fzf keybindings and completion
 - Oh-My-Zsh plugins (zsh-syntax-highlighting, zsh-autosuggestions)
 - Symlinks for all config files (existing files are backed up to `~/.dotfiles_backup/<timestamp>/`)
 
 You'll be prompted to optionally install:
-- **nvm + Node.js LTS** — if you do JavaScript/TypeScript work
-- **rbenv + Ruby 3.2.2** — if you do Ruby work
-- **Claude Code** — Anthropic's CLI for Claude
+- **tmux**: herdr covers local multiplexing; tmux is still handy on SSH/remote boxes
+- **nvm + Node.js LTS**: if you do JavaScript/TypeScript work
+- **rbenv + Ruby 3.2.2**: if you do Ruby work
+- **Claude Code**: Anthropic's CLI for Claude, plus `herdr integration install claude` (a SessionStart hook in `~/.claude/settings.json` that reports session identity to herdr)
 
 To skip the prompts and install everything, run:
 
@@ -48,7 +58,14 @@ To skip the prompts and install everything, run:
 - Navigate splits: `Cmd+[` / `Cmd+]`
 - Config is file-based, no menus to click through
 
-**tmux** is for session persistence (detach/reattach across terminal restarts).
+**herdr** is the agent multiplexer: workspaces and tiled panes, with each agent shown as working, idle or blocked. Config lives at `~/.config/herdr/config.toml`.
+- Prefix is `Ctrl+a` (same as tmux, overriding herdr's default `Ctrl+b`)
+- `herdr` starts or reattaches; `prefix q` detaches
+- Full keymap: https://herdr.dev/docs/keyboard/
+
+**Agent-safe shell**: when `CLAUDECODE` is set, `.aliases` skips the `ls→eza` and `grep→rg` overrides so agents get standard tools. Project-local `./bin` and `./node_modules/.bin` come *last* on PATH, so a repo an agent clones can't override `git`, `ls`, etc.
+
+**tmux** (optional) is for session persistence on remote machines (detach/reattach over SSH).
 - Prefix is `Ctrl+a` (not the default `Ctrl+b`)
 - `Ctrl+a |` split horizontal, `Ctrl+a -` split vertical
 - `Ctrl+a d` detach, then `tmux attach` to come back
@@ -88,6 +105,17 @@ Both directories are created on shell startup, so this works on a fresh machine 
 ```bash
 find . -type d -name .terragrunt-cache -prune -exec rm -rf {} +
 ```
+
+## Git, SSH keys and signed commits
+
+`install.sh` links `git/.gitconfig` → `~/.gitconfig` and `ssh/config` → `~/.ssh/config`, then:
+
+1. Asks for your name/email and writes them to `~/.gitconfig.local` (untracked; included by `.gitconfig`)
+2. Offers to generate `~/.ssh/id_ed25519` (one key per machine, so a lost laptop means revoking one key) and stores its passphrase in the macOS Keychain, so agents can sign without a prompt
+3. Turns on SSH commit signing (`commit.gpgsign`) only once the key exists, so a fresh machine can always commit
+4. Offers `gh auth login` plus uploading the key as a GitHub **signing** key, so commits show as Verified
+
+Machine-specific SSH hosts go in `~/.ssh/config.local` (untracked).
 
 ## Secrets
 

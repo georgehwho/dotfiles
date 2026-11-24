@@ -3,7 +3,8 @@ font-size = 14
 theme = Catppuccin Mocha
 window-decoration = true
 
-# Ghostty native splits (Cmd+D horizontal, Cmd+Shift+D vertical)
+# Ghostty native splits (Cmd+D / Cmd+Shift+D) still work, but day-to-day panes
+# live in herdr (prefix Ctrl+a). Ghostty uses Cmd, herdr uses Ctrl+a, so no clash.
 # No extra config needed — these are defaults
 
 # Slightly more padding for readability

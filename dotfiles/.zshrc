@@ -1,3 +1,9 @@
+# Homebrew first, so everything below (plugins, aliases, `command -v` checks) can see brew tools
+[ -x /opt/homebrew/bin/brew ] && eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# (MacOS only) Prevent Homebrew from reporting
+export HOMEBREW_NO_ANALYTICS=1
+
 export ZSH="$HOME/.oh-my-zsh"
 
 # Disable Oh-My-Zsh theme — Starship handles the prompt
@@ -9,15 +15,16 @@ plugins=(
   zsh-autosuggestions
 )
 
-# (MacOS only) Prevent Homebrew from reporting
-export HOMEBREW_NO_ANALYTICS=1
+# Docker completions (added before Oh-My-Zsh so its single compinit picks them up)
+fpath=($HOME/.docker/completions $fpath)
 
 # load Oh-My-Zsh
-source $ZSH/oh-my-zsh.sh
+[ -f "$ZSH/oh-my-zsh.sh" ] && source "$ZSH/oh-my-zsh.sh"
 
 # PATH
-export PATH="$HOME/.local/bin:./bin:./node_modules/.bin:${PATH}:/usr/local/sbin"
-export PATH="$HOME/.rbenv/bin:$PATH"
+# Project-local bins go at the END: agents cd into arbitrary repos, and a repo's
+# ./bin/git or ./node_modules/.bin/ls must never shadow the real tool.
+export PATH="$HOME/.local/bin:$HOME/.rbenv/bin:${PATH}:/usr/local/sbin:$HOME/.docker/bin:./bin:./node_modules/.bin"
 
 # Source secrets from a separate file (tokens, API keys, etc.)
 # Create ~/.env.secrets for tokens you don't want in version control
@@ -26,8 +33,6 @@ export PATH="$HOME/.rbenv/bin:$PATH"
 
 # Aliases
 [[ -f "$HOME/.aliases" ]] && source "$HOME/.aliases"
-
-eval $(/opt/homebrew/bin/brew shellenv)
 
 # Lazy-load thefuck (saves ~300ms startup time)
 if command -v thefuck &> /dev/null; then
@@ -38,15 +43,9 @@ if command -v thefuck &> /dev/null; then
   }
 fi
 
-eval "$(rbenv init - zsh)"
+command -v rbenv &> /dev/null && eval "$(rbenv init - zsh)"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-# Docker
-export PATH=$PATH:~/.docker/bin
-fpath=($HOME/.docker/completions $fpath)
-autoload -Uz compinit
-compinit
 
 # nvm (node version manager)
 export NVM_DIR="$HOME/.nvm"
@@ -60,4 +59,4 @@ export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
 mkdir -p "$TERRAGRUNT_DOWNLOAD" "$TF_PLUGIN_CACHE_DIR"
 
 # Starship prompt (must be last)
-eval "$(starship init zsh)"
+command -v starship &> /dev/null && eval "$(starship init zsh)"

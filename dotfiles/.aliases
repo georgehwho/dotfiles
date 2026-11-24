@@ -10,8 +10,13 @@ alias ...='cd ../../'
 alias ....='cd ../../../'
 alias .....='cd ../../../../'
 
+# Agents (Claude Code sets CLAUDECODE=1) expect POSIX ls/grep, not eza/rg, so the
+# overrides of standard commands below are for humans only.
+AGENT_SHELL=false
+[[ -n "$CLAUDECODE" ]] && AGENT_SHELL=true
+
 # ls (eza is the maintained fork of exa)
-if command -v eza &> /dev/null
+if command -v eza &> /dev/null && [[ "$AGENT_SHELL" == false ]]
 then
     alias ls='eza'
     alias la='eza -aF'
@@ -42,7 +47,7 @@ alias gll="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset 
 # grep (use ripgrep for speed)
 if command -v rg &> /dev/null
 then
-    alias grep='rg'
+    [[ "$AGENT_SHELL" == false ]] && alias grep='rg'
     alias grepi='rg -i'
     alias grepl='rg -l'
 fi

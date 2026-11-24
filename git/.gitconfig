@@ -1,0 +1,22 @@
+# Tracked git config. Identity + signing key live in ~/.gitconfig.local (untracked,
+# written by install.sh) so no personal details end up in this public repo.
+
+[include]
+  path = ~/.gitconfig.local
+
+[gpg]
+  # Sign with SSH keys instead of GPG (commit.gpgsign is enabled in ~/.gitconfig.local
+  # only once a key exists, so a fresh machine can still commit)
+  format = ssh
+
+[init]
+  defaultBranch = main
+
+[push]
+  autoSetupRemote = true
+
+[fetch]
+  prune = true
+
+[core]
+  excludesfile = ~/.gitignore_global

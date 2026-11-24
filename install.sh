@@ -24,24 +24,55 @@ if [[ "$1" == "--all" ]]; then
   INSTALL_ALL=true
 fi
 
+# --- Prerequisites (fresh Mac) ---
+
+if ! xcode-select -p &> /dev/null; then
+  echo "==> Xcode Command Line Tools are missing. Launching the installer..."
+  xcode-select --install || true
+  echo "    Finish the installer dialog, then re-run ./install.sh"
+  exit 1
+fi
+
+if ! command -v brew &> /dev/null && [ ! -x /opt/homebrew/bin/brew ]; then
+  echo "==> Installing Homebrew (will ask for your password)..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+  echo "==> Installing Oh-My-Zsh..."
+  RUNZSH=no KEEP_ZSHRC=yes CHSH=no \
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+fi
+
 # --- Core tools (always installed) ---
 
 echo "==> Installing core Homebrew packages..."
 brew install --cask ghostty
 brew install --cask font-jetbrains-mono-nerd-font
-brew install starship tmux fzf eza ripgrep thefuck
+brew install starship fzf eza ripgrep thefuck
+# Agentic workflow: herdr multiplexes agent sessions; gh + jq are tools agents reach for constantly
+brew install herdr gh jq
 
 echo "==> Setting up fzf keybindings..."
-$(brew --prefix)/opt/fzf/install --key-bindings --completion --no-update-rc --no-bash --no-fish
+"$(brew --prefix)/opt/fzf/install" --key-bindings --completion --no-update-rc --no-bash --no-fish
 
 echo "==> Installing Oh-My-Zsh plugins..."
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-[ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ] && \
+if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
   git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
-[ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ] && \
+fi
+if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
   git clone https://github.com/zsh-users/zsh-autosuggestions.git "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+fi
 
 # --- Optional tools ---
+
+INSTALL_TMUX=false
+if ask "Install tmux? (herdr covers most of this; useful for SSH/remote boxes)"; then
+  INSTALL_TMUX=true
+  brew install tmux
+fi
 
 if ask "Install nvm + Node.js LTS?"; then
   echo "==> Setting up nvm and Node.js..."
@@ -50,7 +81,7 @@ if ask "Install nvm + Node.js LTS?"; then
   export NVM_DIR="$HOME/.nvm"
   [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
   nvm install --lts
-  nvm alias default lts/*
+  nvm alias default 'lts/*'
 fi
 
 if ask "Install rbenv + Ruby 3.2.2?"; then
@@ -61,9 +92,14 @@ if ask "Install rbenv + Ruby 3.2.2?"; then
   rbenv global 3.2.2
 fi
 
-if ask "Install Claude Code?"; then
-  echo "==> Installing Claude Code..."
-  curl -fsSL https://claude.ai/install.sh | sh
+if ask "Install Claude Code (+ herdr integration)?"; then
+  if ! command -v claude &> /dev/null && [ ! -x "$HOME/.local/bin/claude" ]; then
+    echo "==> Installing Claude Code..."
+    curl -fsSL https://claude.ai/install.sh | sh
+  fi
+  echo "==> Installing herdr's Claude Code hook (reports session identity to herdr)..."
+  mkdir -p "$HOME/.claude"
+  herdr integration install claude || echo "    (herdr integration failed; run 'herdr integration install claude' later)"
 fi
 
 # --- Symlink dotfiles ---
@@ -83,12 +119,51 @@ backup_and_link() {
 
 backup_and_link "$DOTFILES_DIR/dotfiles/.zshrc" "$HOME/.zshrc"
 backup_and_link "$DOTFILES_DIR/dotfiles/.aliases" "$HOME/.aliases"
-backup_and_link "$DOTFILES_DIR/tmux/.tmux.conf" "$HOME/.tmux.conf"
+if [[ "$INSTALL_TMUX" == true ]]; then
+  backup_and_link "$DOTFILES_DIR/tmux/.tmux.conf" "$HOME/.tmux.conf"
+fi
 
-mkdir -p "$HOME/.config/ghostty"
+mkdir -p "$HOME/.config/ghostty" "$HOME/.config/herdr"
 backup_and_link "$DOTFILES_DIR/ghostty/config" "$HOME/.config/ghostty/config"
-
-mkdir -p "$HOME/.config"
+backup_and_link "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
 backup_and_link "$DOTFILES_DIR/starship/starship.toml" "$HOME/.config/starship.toml"
+backup_and_link "$DOTFILES_DIR/git/.gitconfig" "$HOME/.gitconfig"
 
-echo "==> Done! Open Ghostty and run: source ~/.zshrc"
+mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+backup_and_link "$DOTFILES_DIR/ssh/config" "$HOME/.ssh/config"
+touch "$HOME/.ssh/config.local" "$HOME/.gitignore_global"
+
+# --- Git identity, SSH key, signed commits ---
+
+SSH_KEY="$HOME/.ssh/id_ed25519"
+
+if [ ! -f "$HOME/.gitconfig.local" ]; then
+  echo "==> Git identity (saved to untracked ~/.gitconfig.local)"
+  read -rp "  Name: " git_name
+  read -rp "  Email: " git_email
+  printf '[user]\n  name = %s\n  email = %s\n' "$git_name" "$git_email" > "$HOME/.gitconfig.local"
+fi
+
+if [ ! -f "$SSH_KEY" ] && ask "Generate an SSH key for this machine?" y; then
+  ssh-keygen -t ed25519 -C "$(scutil --get ComputerName 2>/dev/null || hostname)" -f "$SSH_KEY"
+fi
+
+if [ -f "$SSH_KEY" ]; then
+  # Passphrase goes in the macOS Keychain so agents can sign commits without a prompt
+  ssh-add --apple-use-keychain "$SSH_KEY" || true
+
+  if ! git config --file "$HOME/.gitconfig.local" --get user.signingkey &> /dev/null; then
+    echo "==> Enabling SSH-signed commits..."
+    git config --file "$HOME/.gitconfig.local" user.signingkey "$SSH_KEY.pub"
+    git config --file "$HOME/.gitconfig.local" commit.gpgsign true
+  fi
+
+  if ask "Authenticate GitHub and upload this key (auth + signing) with gh?" y; then
+    gh auth status &> /dev/null || gh auth login --hostname github.com --git-protocol ssh --web
+    gh auth refresh --hostname github.com --scopes admin:ssh_signing_key
+    gh ssh-key add "$SSH_KEY.pub" --type signing --title "$(scutil --get ComputerName 2>/dev/null || hostname) signing" \
+      || echo "    (signing key upload failed or already exists)"
+  fi
+fi
+
+echo "==> Done! Open Ghostty, run: source ~/.zshrc, then start herdr with: herdr"
