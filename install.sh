@@ -176,6 +176,16 @@ if [ -f "$SSH_KEY" ]; then
     gh ssh-key add "$SSH_KEY.pub" --type signing --title "$(scutil --get ComputerName 2>/dev/null || hostname) signing" \
       || echo "    (signing key upload failed or already exists)"
   fi
+
+  # Lets `git log --show-signature` / `git verify-commit` check your own signatures locally
+  git config --file "$HOME/.gitconfig.local" gpg.ssh.allowedSignersFile "$HOME/.ssh/allowed_signers"
+  printf '%s %s\n' "$(git config --file "$HOME/.gitconfig.local" user.email)" "$(cat "$SSH_KEY.pub")" > "$HOME/.ssh/allowed_signers"
+fi
+
+# Trust GitHub's SSH host keys, fetched over authenticated HTTPS instead of trust-on-first-use
+if gh auth status &> /dev/null && ! ssh-keygen -F github.com &> /dev/null; then
+  echo "==> Adding GitHub SSH host keys to known_hosts..."
+  gh api meta --jq '.ssh_keys[] | "github.com " + .' >> "$HOME/.ssh/known_hosts"
 fi
 
 echo "==> Done! Open Ghostty, run: source ~/.zshrc, then start herdr with: herdr"
