@@ -52,6 +52,19 @@ then
     alias grepl='rg -l'
 fi
 
+# Out of Claude tokens? Same Claude Code (CLAUDE.md, skills, pstack, herdr hook),
+# pointed at the local Ollama model. Model aliases (opus/sonnet/haiku) that
+# skills and subagents request are all mapped to the local model too.
+# Inside herdr, `hop -k claude -m local` opens the same thing in a new pane.
+claude-local() {
+  curl -sf http://localhost:11434/api/tags > /dev/null || { echo "Ollama isn't running (brew services start ollama)"; return 1; }
+  ANTHROPIC_BASE_URL=http://localhost:11434 ANTHROPIC_AUTH_TOKEN=ollama ANTHROPIC_API_KEY="" \
+  ANTHROPIC_DEFAULT_OPUS_MODEL=gpt-oss-64k ANTHROPIC_DEFAULT_SONNET_MODEL=gpt-oss-64k \
+  ANTHROPIC_DEFAULT_HAIKU_MODEL=gpt-oss-64k ANTHROPIC_DEFAULT_FABLE_MODEL=gpt-oss-64k \
+  CLAUDE_CODE_SUBAGENT_MODEL=gpt-oss-64k CLAUDE_CODE_MAX_CONTEXT_TOKENS=65536 \
+    claude --model gpt-oss-64k "$@"
+}
+
 # speed test stuff
 alias myip='curl https://ipinfo.io/json'
 alias speedtest='curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -'

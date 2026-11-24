@@ -120,6 +120,24 @@ if ask "Install Claude Code (+ herdr integration)?"; then
   echo "==> Installing herdr's Claude Code hook (reports session identity to herdr)..."
   mkdir -p "$HOME/.claude"
   herdr integration install claude || echo "    (herdr integration failed; run 'herdr integration install claude' later)"
+
+  if ask "Install the pstack plugin (Lauren Tan's agent skills) for Claude Code?" y; then
+    claude plugin marketplace add cursor/plugins || true
+    claude plugin install pstack@cursor-plugins || echo "    (pstack install failed; in Claude Code run /plugin install pstack@cursor-plugins)"
+  fi
+fi
+
+# --- Local models: keep coding when Claude tokens run out ---
+
+if ask "Set up local models (Ollama + opencode, ~14 GB download)?" y; then
+  echo "==> Installing Ollama and opencode..."
+  brew install ollama opencode
+  brew services start ollama
+  for _ in {1..20}; do curl -sf http://localhost:11434/api/tags > /dev/null && break; sleep 1; done
+  echo "==> Pulling gpt-oss:20b and building gpt-oss-64k (64K context)..."
+  ollama pull gpt-oss:20b
+  ollama create gpt-oss-64k -f "$DOTFILES_DIR/ollama/Modelfile.gpt-oss-64k"
+  herdr integration install opencode || echo "    (run 'herdr integration install opencode' later)"
 fi
 
 # --- Symlink dotfiles ---
@@ -134,7 +152,7 @@ backup_and_link() {
     echo "  Backing up $dest -> $BACKUP_DIR/"
     mv "$dest" "$BACKUP_DIR/"
   fi
-  ln -sf "$src" "$dest"
+  ln -sfn "$src" "$dest"
 }
 
 backup_and_link "$DOTFILES_DIR/dotfiles/.zshrc" "$HOME/.zshrc"
@@ -147,6 +165,12 @@ mkdir -p "$HOME/.config/ghostty" "$HOME/.config/herdr"
 backup_and_link "$DOTFILES_DIR/ghostty/config" "$HOME/.config/ghostty/config"
 backup_and_link "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
 backup_and_link "$DOTFILES_DIR/starship/starship.toml" "$HOME/.config/starship.toml"
+
+# Link the opencode config file only: herdr writes its own plugins into ~/.config/opencode/
+mkdir -p "$HOME/.config/opencode" "$HOME/.local/bin" "$HOME/.claude/skills"
+backup_and_link "$DOTFILES_DIR/opencode/opencode.jsonc" "$HOME/.config/opencode/opencode.jsonc"
+backup_and_link "$DOTFILES_DIR/bin/hop" "$HOME/.local/bin/hop"
+backup_and_link "$DOTFILES_DIR/claude/skills/pstack-herdr" "$HOME/.claude/skills/pstack-herdr"
 backup_and_link "$DOTFILES_DIR/git/.gitconfig" "$HOME/.gitconfig"
 
 mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"

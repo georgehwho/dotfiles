@@ -2,7 +2,13 @@
 # Machine-specific hosts go in ~/.ssh/config.local (untracked).
 Include ~/.ssh/config.local
 
+# GitHub over port 443 (ssh.github.com) because many Wi-Fi networks block port 22.
+# HostKeyAlias keeps using the github.com entries in known_hosts (same host keys).
 Host github.com
+  HostName ssh.github.com
+  Port 443
+  HostKeyAlias github.com
+  User git
   AddKeysToAgent yes
   UseKeychain yes
   IdentityFile ~/.ssh/id_ed25519

@@ -14,6 +14,14 @@ git/
   .gitconfig      # SSH signing, sane defaults; identity in ~/.gitconfig.local
 herdr/
   config.toml     # Agent multiplexer: Ctrl+a prefix, catppuccin theme
+bin/
+  hop             # Open Claude Code / opencode (local or hosted model) in a new herdr pane
+claude/skills/
+  pstack-herdr/   # pstack's parallel workers as herdr panes, mixed model families
+ollama/
+  Modelfile.gpt-oss-64k  # Local fallback model with a usable context window
+opencode/
+  opencode.jsonc  # opencode defaults to the local model
 ssh/
   config          # Keychain-backed GitHub key; hosts in ~/.ssh/config.local
 starship/
@@ -66,6 +74,21 @@ To skip the prompts and install everything, run:
 - Full keymap: https://herdr.dev/docs/keyboard/
 
 **Agent-safe shell**: when `CLAUDECODE` is set, `.aliases` skips the `ls→eza` and `grep→rg` overrides so agents get standard tools. Project-local `./bin` and `./node_modules/.bin` come *last* on PATH, so a repo an agent clones can't override `git`, `ls`, etc.
+
+## Agents: Claude Code, local models, pstack
+
+**Out of Claude tokens?** Keep going on a local model (free, offline):
+
+| Command | What it does |
+| --- | --- |
+| `claude-local` | The same Claude Code (CLAUDE.md, skills, pstack, herdr hook) pointed at Ollama's `gpt-oss-64k`. Takes normal `claude` args, e.g. `claude-local --continue`. |
+| `hop -k claude -m local` | The same thing, in a new herdr pane next to this one |
+| `hop` | opencode on the local model in a new herdr pane |
+| `hop -m deepseek -n reviewer` | opencode on the free hosted DeepSeek V4.1 Flash (not local, but free) |
+
+The local model is **gpt-oss 20B** (`ollama/Modelfile.gpt-oss-64k` gives it a 64K context; Ollama's default on 24 GB is only 4K). It's the largest model that leaves room for context and other apps on a 24 GB Mac. Kimi and DeepSeek are far too large to run locally. Expect it to be noticeably weaker than Claude: good for continuing well-scoped work, not for hard design calls. Run one local session at a time.
+
+**pstack** ([Lauren Tan's agent skills](https://github.com/cursor/plugins/tree/main/pstack)) is installed as a Claude Code plugin; its commands are `/pstack:<name>`, starting with `/pstack:setup-pstack`. **`claude/skills/pstack-herdr`** is the herdr flavor: inside herdr, pstack's parallel workers (swarm, arena, review panels) run as visible panes, each writer in its own git worktree, with at least one non-Claude (opencode) reviewer per panel.
 
 **tmux** (optional) is for session persistence on remote machines (detach/reattach over SSH).
 - Prefix is `Ctrl+a` (not the default `Ctrl+b`)

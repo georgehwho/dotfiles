@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# hop: open a coding agent in a new herdr pane next to this one.
+#
+#   hop                          opencode on the local model, pane named "oc"
+#   hop -k claude -m local       Claude Code on the local model (out-of-tokens fallback)
+#   hop -n reviewer -m deepseek  opencode on the free hosted DeepSeek V4.1 Flash
+#   hop -C ../wt-fix -p "..."    start in another dir (e.g. a worktree) and send a first prompt
+#
+# Models: local (Ollama gpt-oss-64k), deepseek (opencode free tier), or any
+# opencode provider/model id. Claude Code with no -m uses your normal Anthropic login.
+set -euo pipefail
+
+LOCAL_MODEL="gpt-oss-64k"
+OLLAMA_URL="http://localhost:11434"
+
+usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+die() { echo "hop: $*" >&2; exit 1; }
+
+kind=opencode name="" model="" cwd="$PWD" dir=right prompt=""
+while getopts "k:n:m:C:d:p:h" opt; do
+  case "$opt" in
+    k) kind="$OPTARG" ;;
+    n) name="$OPTARG" ;;
+    m) model="$OPTARG" ;;
+    C) cwd="$(cd "$OPTARG" && pwd)" ;;
+    d) dir="$OPTARG" ;;
+    p) prompt="$OPTARG" ;;
+    h) usage ;;
+    *) usage 1 ;;
+  esac
+done
+
+[[ "${HERDR_ENV:-}" == 1 ]] || die "run this inside a herdr pane"
+command -v jq > /dev/null || die "jq is required"
+
+env_args=() agent_args=()
+needs_ollama=false
+case "$kind" in
+  opencode)
+    name="${name:-oc}"
+    case "${model:-local}" in
+      local) model="ollama/$LOCAL_MODEL"; needs_ollama=true ;;
+      deepseek) model="opencode/deepseek-v4.1-flash-free" ;;
+    esac
+    # A private server per pane so the model override applies to this pane only
+    env_args+=(--env "OPENCODE_CONFIG_CONTENT={\"model\":\"$model\"}")
+    agent_args+=(--standalone)
+    ;;
+  claude)
+    name="${name:-cc}"
+    if [[ "$model" == local ]]; then
+      needs_ollama=true
+      env_args+=(--env "ANTHROPIC_BASE_URL=$OLLAMA_URL" --env "ANTHROPIC_AUTH_TOKEN=ollama" --env "ANTHROPIC_API_KEY=")
+      for alias in OPUS SONNET HAIKU FABLE; do env_args+=(--env "ANTHROPIC_DEFAULT_${alias}_MODEL=$LOCAL_MODEL"); done
+      env_args+=(--env "CLAUDE_CODE_SUBAGENT_MODEL=$LOCAL_MODEL" --env "CLAUDE_CODE_MAX_CONTEXT_TOKENS=65536")
+      agent_args+=(--model "$LOCAL_MODEL")
+    elif [[ -n "$model" ]]; then
+      agent_args+=(--model "$model")
+    fi
+    ;;
+  *) die "unknown kind '$kind' (use opencode or claude)" ;;
+esac
+
+if [[ "$needs_ollama" == true ]] && ! curl -sf "$OLLAMA_URL/api/tags" > /dev/null; then
+  die "Ollama isn't running (brew services start ollama)"
+fi
+
+pane=$(herdr pane split --current --direction "$dir" --cwd "$cwd" --no-focus ${env_args[@]+"${env_args[@]}"} \
+  | jq -r '.result.pane.pane_id')
+[[ -n "$pane" && "$pane" != null ]] || die "pane split failed"
+
+herdr agent start "$name" --kind "$kind" --pane "$pane" --timeout 120000 -- ${agent_args[@]+"${agent_args[@]}"} > /dev/null
+echo "hop: $name ($kind${model:+, $model}) in pane $pane"
+
+if [[ -n "$prompt" ]]; then
+  herdr agent prompt "$name" "$prompt" --wait > /dev/null
+  herdr agent read "$name" --source recent --lines 60
+fi
