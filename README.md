@@ -40,6 +40,8 @@ The script will always install:
 - Symlinks for all config files (existing files are backed up to `~/.dotfiles_backup/<timestamp>/`)
 
 You'll be prompted to optionally install:
+- **Raycast**: launcher
+- **herdr desktop app** (`herdr-app`): native GUI for herdr; still early, and the herdr CLI is installed regardless
 - **tmux**: herdr covers local multiplexing; tmux is still handy on SSH/remote boxes
 - **nvm + Node.js LTS**: if you do JavaScript/TypeScript work
 - **rbenv + Ruby 3.2.2**: if you do Ruby work

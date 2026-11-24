@@ -80,6 +80,14 @@ fi
 
 # --- Optional tools ---
 
+if ask "Install Raycast (launcher)?"; then
+  install_cask raycast
+fi
+
+if ask "Install the herdr desktop app? (early; the herdr CLI is already installed)"; then
+  install_cask herdr-app
+fi
+
 INSTALL_TMUX=false
 if ask "Install tmux? (herdr covers most of this; useful for SSH/remote boxes)"; then
   INSTALL_TMUX=true
