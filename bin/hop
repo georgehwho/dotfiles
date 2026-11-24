@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
-# hop: open a coding agent in a new herdr pane next to this one.
+# hop: start a coding agent in a new herdr terminal.
 #
-#   hop                          opencode on the local model, pane named "oc"
+#   hop                          opencode on the local model, named "oc"
 #   hop -k claude -m local       Claude Code on the local model (out-of-tokens fallback)
 #   hop -n reviewer -m deepseek  opencode on the free hosted DeepSeek V4.1 Flash
-#   hop -C ../wt-fix -p "..."    start in another dir (e.g. a worktree) and send a first prompt
+#   hop -C ../wt-fix -p "..."    start in another dir (e.g. a worktree), send a first prompt, wait
 #
 # Models: local (Ollama gpt-oss-64k), deepseek (opencode free tier), or any
 # opencode provider/model id. Claude Code with no -m uses your normal Anthropic login.
+# Backend: the Herdr desktop app (hc) when it's running, else the herdr TUI (inside a pane).
 set -euo pipefail
 
 LOCAL_MODEL="gpt-oss-64k"
 OLLAMA_URL="http://localhost:11434"
+HC="${HC:-$(command -v hc || echo "$HOME/.local/bin/hc")}"
 
-usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 die() { echo "hop: $*" >&2; exit 1; }
 
 kind=opencode name="" model="" cwd="$PWD" dir=right prompt=""
@@ -30,10 +32,8 @@ while getopts "k:n:m:C:d:p:h" opt; do
   esac
 done
 
-[[ "${HERDR_ENV:-}" == 1 ]] || die "run this inside a herdr pane"
-command -v jq > /dev/null || die "jq is required"
-
-env_args=() agent_args=()
+# Environment for the agent (KEY=VALUE) and its own CLI arguments
+envs=() agent_args=()
 needs_ollama=false
 case "$kind" in
   opencode)
@@ -42,17 +42,17 @@ case "$kind" in
       local) model="ollama/$LOCAL_MODEL"; needs_ollama=true ;;
       deepseek) model="opencode/deepseek-v4.1-flash-free" ;;
     esac
-    # A private server per pane so the model override applies to this pane only
-    env_args+=(--env "OPENCODE_CONFIG_CONTENT={\"model\":\"$model\"}")
+    # A private server per terminal so the model override applies to this one only
+    envs+=("OPENCODE_CONFIG_CONTENT={\"model\":\"$model\"}")
     agent_args+=(--standalone)
     ;;
   claude)
     name="${name:-cc}"
     if [[ "$model" == local ]]; then
       needs_ollama=true
-      env_args+=(--env "ANTHROPIC_BASE_URL=$OLLAMA_URL" --env "ANTHROPIC_AUTH_TOKEN=ollama" --env "ANTHROPIC_API_KEY=")
-      for alias in OPUS SONNET HAIKU FABLE; do env_args+=(--env "ANTHROPIC_DEFAULT_${alias}_MODEL=$LOCAL_MODEL"); done
-      env_args+=(--env "CLAUDE_CODE_SUBAGENT_MODEL=$LOCAL_MODEL" --env "CLAUDE_CODE_MAX_CONTEXT_TOKENS=65536")
+      envs+=("ANTHROPIC_BASE_URL=$OLLAMA_URL" "ANTHROPIC_AUTH_TOKEN=ollama" "ANTHROPIC_API_KEY=")
+      for alias in OPUS SONNET HAIKU FABLE; do envs+=("ANTHROPIC_DEFAULT_${alias}_MODEL=$LOCAL_MODEL"); done
+      envs+=("CLAUDE_CODE_SUBAGENT_MODEL=$LOCAL_MODEL" "CLAUDE_CODE_MAX_CONTEXT_TOKENS=65536")
       agent_args+=(--model "$LOCAL_MODEL")
     elif [[ -n "$model" ]]; then
       agent_args+=(--model "$model")
@@ -65,12 +65,39 @@ if [[ "$needs_ollama" == true ]] && ! curl -sf "$OLLAMA_URL/api/tags" > /dev/nul
   die "Ollama isn't running (brew services start ollama)"
 fi
 
-pane=$(herdr pane split --current --direction "$dir" --cwd "$cwd" --no-focus ${env_args[@]+"${env_args[@]}"} \
+command -v jq > /dev/null || die "jq is required"
+label="$name ($kind${model:+, $model})"
+
+# --- Herdr desktop app (herdr-core) ---
+if [[ -n "${HC_TERMINAL_ID:-}" ]] || { [[ -z "${HERDR_ENV:-}" ]] && [[ -x "$HC" ]] && "$HC" server status > /dev/null 2>&1; }; then
+  addr=$("$HC" run --name "$name" --cwd "$cwd" --bg --outlive-parent --no-notify --label "hop=$kind" --json \
+    -- env ${envs[@]+"${envs[@]}"} "$kind" ${agent_args[@]+"${agent_args[@]}"} | jq -r '.address')
+  [[ -n "$addr" && "$addr" != null ]] || die "hc run failed"
+  echo "hop: $label in terminal $addr"
+  if [[ -n "$prompt" ]]; then
+    # Let the agent finish booting, then send and wait for the turn to end
+    for _ in {1..60}; do
+      [[ "$("$HC" get "$name" --json | jq -r '.status.state // empty')" == idle ]] && break
+      sleep 1
+    done
+    "$HC" send "$name" "$prompt" --wait --timeout 1800 > /dev/null
+    "$HC" read "$name" --lines 60
+  fi
+  exit 0
+fi
+
+# --- herdr TUI ---
+[[ "${HERDR_ENV:-}" == 1 ]] || die "start the Herdr app, or run this inside a herdr TUI pane"
+
+env_flags=()
+for e in ${envs[@]+"${envs[@]}"}; do env_flags+=(--env "$e"); done
+
+pane=$(herdr pane split --current --direction "$dir" --cwd "$cwd" --no-focus ${env_flags[@]+"${env_flags[@]}"} \
   | jq -r '.result.pane.pane_id')
 [[ -n "$pane" && "$pane" != null ]] || die "pane split failed"
 
 herdr agent start "$name" --kind "$kind" --pane "$pane" --timeout 120000 -- ${agent_args[@]+"${agent_args[@]}"} > /dev/null
-echo "hop: $name ($kind${model:+, $model}) in pane $pane"
+echo "hop: $label in pane $pane"
 
 if [[ -n "$prompt" ]]; then
   herdr agent prompt "$name" "$prompt" --wait > /dev/null

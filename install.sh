@@ -84,7 +84,7 @@ if ask "Install Raycast (launcher)?"; then
   install_cask raycast
 fi
 
-if ask "Install the herdr desktop app? (early; the herdr CLI is already installed)"; then
+if ask "Install the Herdr desktop app? (main herdr; hop and pstack-herdr target it)" y; then
   install_cask herdr-app
 fi
 
@@ -220,4 +220,4 @@ if gh auth status &> /dev/null && ! ssh-keygen -F github.com &> /dev/null; then
   gh api meta --jq '.ssh_keys[] | "github.com " + .' >> "$HOME/.ssh/known_hosts"
 fi
 
-echo "==> Done! Open Ghostty, run: source ~/.zshrc, then start herdr with: herdr"
+echo "==> Done! Open the Herdr app (or Ghostty + herdr for the TUI) and run: source ~/.zshrc"
