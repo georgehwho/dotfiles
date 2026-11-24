@@ -47,9 +47,21 @@ fi
 
 # --- Core tools (always installed) ---
 
+# Install a cask without aborting when the app was already installed outside Homebrew
+# (e.g. Ghostty from its website): adopt it into Homebrew, or skip with a warning.
+install_cask() {
+  local cask="$1"
+  if brew list --cask "$cask" &> /dev/null; then
+    echo "  $cask already installed via Homebrew"
+  elif ! brew install --cask "$cask"; then
+    echo "  $cask exists outside Homebrew; trying to adopt it..."
+    brew install --cask --adopt "$cask" || echo "  WARNING: skipping $cask (already present, couldn't adopt)"
+  fi
+}
+
 echo "==> Installing core Homebrew packages..."
-brew install --cask ghostty
-brew install --cask font-jetbrains-mono-nerd-font
+install_cask ghostty
+install_cask font-jetbrains-mono-nerd-font
 brew install starship fzf eza ripgrep thefuck
 # Agentic workflow: herdr multiplexes agent sessions; gh + jq are tools agents reach for constantly
 brew install herdr gh jq
