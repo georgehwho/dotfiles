@@ -134,10 +134,15 @@ find . -type d -name .terragrunt-cache -prune -exec rm -rf {} +
 
 ## Staying awake for agent sessions
 
-`macos/power.sh` (offered by `install.sh`, needs your password) stops idle sleep
-on the charger and on battery, so herdr and remote Claude sessions keep running.
-The display still turns off. It also makes the screen lock immediately on sleep.
-Undo with `sudo pmset restoredefaults`.
+`macos/power.sh` (offered by `install.sh`, needs your password) delays idle sleep
+to 10 minutes on battery and 30 minutes on the charger (Apple's setting here was
+1 minute), so herdr and remote Claude sessions keep running through short breaks.
+Display sleep, lid-close sleep, Power Nap and hibernation are left alone. It also
+makes the screen lock immediately on sleep. Undo with `sudo pmset restoredefaults`.
+
+While the Mac is asleep, herdr sessions are paused, not lost: they resume on wake.
+To keep agents working through sleep or a closed lid, herdr has to run on an
+always-on machine (e.g. a Mac mini) that the Herdr app connects to over SSH.
 
 Sleep on purpose with the **Lock and Sleep** Raycast command
 (`raycast/scripts/lock-and-sleep.sh`). Add that folder under Raycast > Settings >
@@ -145,8 +150,7 @@ Extensions > Script Commands, then give the command a hotkey (Ctrl+Cmd+L; plain
 Cmd+L is taken in most apps).
 
 Closing the lid still sleeps the Mac unless it's on the charger with an external
-display. On battery, a Mac that never sleeps drains overnight, and macOS
-hibernates it when the battery runs low.
+display.
 
 ## Git, SSH keys and signed commits
 
