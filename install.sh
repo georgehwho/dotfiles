@@ -220,4 +220,12 @@ if gh auth status &> /dev/null && ! ssh-keygen -F github.com &> /dev/null; then
   gh api meta --jq '.ssh_keys[] | "github.com " + .' >> "$HOME/.ssh/known_hosts"
 fi
 
+# --- Stay awake for long-running agent sessions; sleep on purpose ---
+
+if ask "Keep the Mac awake (no idle sleep) and lock immediately on sleep? (asks for your password)" y; then
+  "$DOTFILES_DIR/macos/power.sh"
+  echo "    In Raycast: Settings > Extensions > Script Commands > Add Directories > $DOTFILES_DIR/raycast/scripts,"
+  echo "    then give 'Lock and Sleep' a hotkey (Ctrl+Cmd+L suggested; Cmd+L clashes with most apps)."
+fi
+
 echo "==> Done! Open the Herdr app (or Ghostty + herdr for the TUI) and run: source ~/.zshrc"

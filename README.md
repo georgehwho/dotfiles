@@ -132,6 +132,22 @@ Both directories are created on shell startup, so this works on a fresh machine 
 find . -type d -name .terragrunt-cache -prune -exec rm -rf {} +
 ```
 
+## Staying awake for agent sessions
+
+`macos/power.sh` (offered by `install.sh`, needs your password) stops idle sleep
+on the charger and on battery, so herdr and remote Claude sessions keep running.
+The display still turns off. It also makes the screen lock immediately on sleep.
+Undo with `sudo pmset restoredefaults`.
+
+Sleep on purpose with the **Lock and Sleep** Raycast command
+(`raycast/scripts/lock-and-sleep.sh`). Add that folder under Raycast > Settings >
+Extensions > Script Commands, then give the command a hotkey (Ctrl+Cmd+L; plain
+Cmd+L is taken in most apps).
+
+Closing the lid still sleeps the Mac unless it's on the charger with an external
+display. On battery, a Mac that never sleeps drains overnight, and macOS
+hibernates it when the battery runs low.
+
 ## Git, SSH keys and signed commits
 
 `install.sh` links `git/.gitconfig` → `~/.gitconfig` and `ssh/config` → `~/.ssh/config`, then:
